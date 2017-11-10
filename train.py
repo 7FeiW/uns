@@ -82,7 +82,7 @@ def train_and_predict(model_name="unet",
     val_gen = ImageDataGenerator()
 
     # model.compile(optimizer=Adadelta(lr=0.1, rho=0.95, epsilon=1e-08), loss=dice_loss, metrics=[soomth_dice_sorensen_coef_batch])
-    model.compile(optimizer=Adam(lr=0.0001), loss=dice_loss, metrics=[hard_dice_cof, hard_dice_coef_2])
+    model.compile(optimizer=Adam(lr=0.0001), loss=dice_loss, metrics=[hard_dice_cof, hard_dice_coef2, hard_dice_coef3])
 
     # set model checkpoint
     model_checkpoint = ModelCheckpoint(folder_name + '/models.h5', monitor='val_loss', save_best_only=True)
