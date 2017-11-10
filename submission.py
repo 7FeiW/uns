@@ -1,9 +1,8 @@
-import numpy as np
-from skimage.transform import resize
 from utils import *
 
 image_rows = 420
 image_cols = 580
+
 
 def prep(img):
     img = img.astype('float32')
@@ -19,12 +18,13 @@ def run_length_enc(label):
     if len(y) < 10:  # consider as empty
         return ''
     z = np.where(np.diff(y) > 1)[0]
-    start = np.insert(y[z+1], 0, y[0])
+    start = np.insert(y[z + 1], 0, y[0])
     end = np.append(y[z], y[-1])
     length = end - start
-    res = [[s+1, l+1] for s, l in zip(list(start), list(length))]
+    res = [[s + 1, l + 1] for s, l in zip(list(start), list(length))]
     res = list(chain.from_iterable(res))
     return ' '.join([str(r) for r in res])
+
 
 def rle_encode(img):
     '''
@@ -37,6 +37,7 @@ def rle_encode(img):
     runs = np.where(pixels[1:] != pixels[:-1])[0] + 2
     runs[1::2] = runs[1::2] - runs[:-1:2]
     return ' '.join(str(x) for x in runs)
+
 
 def create_submission(npy_file='imgs_mask_test.npy', file_name='submission.csv'):
     imgs_test, imgs_id_test = get_testing_npy_data()
