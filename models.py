@@ -252,7 +252,7 @@ def fcn(img_rows=64, img_cols=80, base_filter_num=32):
 
     return model
 
-
+'''
 def discriminator(img_rows=64, img_cols=80):
     inputs = Input((img_rows, img_cols, 1))
     conv1 = conv_bn_block(inputs, 32, (3, 3))
@@ -265,3 +265,4 @@ def discriminator(img_rows=64, img_cols=80):
     model = Model(inputs=[inputs], outputs=[conv10])
 
     return model
+'''
