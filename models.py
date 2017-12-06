@@ -62,7 +62,6 @@ def unet(img_rows=64, img_cols=80, base_filter_num=32):
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
     conv5 = conv_block(pool4, 512, (3, 3))
-    # conv5 = Dropout(0.5)(conv5)
 
     up6 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
     conv6 = conv_block(up6, 256, (3, 3))
@@ -82,6 +81,48 @@ def unet(img_rows=64, img_cols=80, base_filter_num=32):
 
     return model
 
+def unet_deeper(img_rows=64, img_cols=80, base_filter_num=32):
+    '''
+    A deeper unet
+    '''
+    inputs = Input((img_rows, img_cols, 1))
+    conv1 = conv_block(inputs, 32, (3, 3))
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+
+    conv2 = conv_block(pool1, 64, (3, 3))
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+
+    conv3 = conv_block(pool2, 128, (3, 3))
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+
+    conv4 = conv_block(pool3, 256, (3, 3))
+    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
+
+    conv5 = conv_block(pool4, 512, (3, 3))
+    pool5 = MaxPooling2D(pool_size=(2, 2))(conv5)
+
+    conv6 = conv_block(pool5, 1024, (3, 3))
+
+    up7 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv6), conv5], axis=3)
+    conv7 = conv_block(up7, 256, (3, 3))
+
+    up8 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv7), conv4], axis=3)
+    conv8 = conv_block(up8, 128, (3, 3))
+
+    up9 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv8), conv3], axis=3)
+    conv9 = conv_block(up9, 64, (3, 3))
+
+    up10 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv9), conv2], axis=3)
+    conv10 = conv_block(up10, 32, (3, 3))
+
+    up11 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv10), conv1], axis=3)
+    conv11 = conv_block(up11, 32, (3, 3))
+
+    conv12 = Conv2D(1, (1, 1), activation='sigmoid')(conv11)
+
+    model = Model(inputs=[inputs], outputs=[conv12])
+
+    return model
 
 def unet_res(img_rows=64, img_cols=80, base_filter_num=32):
     '''
@@ -253,6 +294,9 @@ def fcn(img_rows=64, img_cols=80, base_filter_num=32):
     return model
 
 '''
+def segmentator():
+    pass
+
 def discriminator(img_rows=64, img_cols=80):
     inputs = Input((img_rows, img_cols, 1))
     conv1 = conv_bn_block(inputs, 32, (3, 3))
@@ -261,8 +305,11 @@ def discriminator(img_rows=64, img_cols=80):
     conv2 = conv_bn_block(pool1, 64, (3, 3))
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
+    conv3 = conv_bn_block(pool2, 128, (3, 3))
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+
     dense = Dense(2, activation='softmax')(pool2)
-    model = Model(inputs=[inputs], outputs=[conv10])
+    model = Model(inputs=[inputs], outputs=[dense])
 
     return model
 '''

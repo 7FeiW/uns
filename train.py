@@ -1,4 +1,5 @@
 import warnings
+import json
 
 from keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
@@ -9,6 +10,8 @@ from loss_functions import *
 from models import *
 from submission import *
 from math import isnan
+
+from keras.callbacks import TensorBoard
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
@@ -50,6 +53,12 @@ def train_and_predict(model_name="unet",
     mean = np.mean(imgs_train)  # mean for data centering
     std = np.std(imgs_train)  # std for data normalization
 
+    # save mean and std
+    data = { 'mean': float(mean), 'std' : float(std)}
+
+    with open(folder_name + '/data.json', 'w+') as outfile:
+        json.dump(data, outfile)
+
     imgs_train -= mean
     imgs_train /= std
 
@@ -86,8 +95,15 @@ def train_and_predict(model_name="unet",
         model = unet_res_wide_dp(img_rows=img_rows, img_cols=img_cols, base_filter_num=filters)
     elif model_name == 'fcn':
         model = fcn(img_rows=img_rows, img_cols=img_cols, base_filter_num=filters)
+    elif model_name == 'unet_deeper':
+        model = unet_deeper(img_rows=img_rows, img_cols=img_cols, base_filter_num=filters)
     else:
         print('ooops')
+
+    # set tensorboard
+    tensorboard = TensorBoard(log_dir=folder_name + '/logs', histogram_freq=0,  write_graph=True, write_images=False)
+    if not os.path.exists(folder_name + '/logs'):
+        os.mkdir(folder_name + '/logs')
 
     # create data generator
     data_gen = ImageDataGenerator(
@@ -98,28 +114,26 @@ def train_and_predict(model_name="unet",
     val_gen = ImageDataGenerator()
 
     #model.compile(optimizer=Adadelta(lr=0.1, rho=0.95, epsilon=1e-08), loss=dice_loss2, metrics=[dice_coef2,hard_dice_coef2])
-    # #'binary_crossentropy'
-    model.compile(optimizer=Adam(lr=1e-5), loss=dice_loss, metrics=[hard_dice_coef,hard_dice_coef2])
+    model.compile(optimizer=Adam(lr=1e-5), loss=dice_loss, metrics=[hard_dice_coef])
 
     # set model checkpoint
     model_checkpoint = ModelCheckpoint(folder_name + '/models.h5', monitor='val_loss', save_best_only=True)
 
     # fitting model
-    #model.fit_generator(data_gen.flow(train_set, train_set_masks, batch_size=batch_size, shuffle=True),
-    #                    samples_per_epoch=len(train_set), epochs=num_epoch, verbose=verbose,
-    #                    callbacks=[model_checkpoint],
-    #                    validation_data=val_gen.flow(val_set, val_set_masks, batch_size=batch_size, shuffle=True),
-    #                    validation_steps=int(len(val_set) / 32))
+    model.fit_generator(data_gen.flow(train_set, train_set_masks, batch_size=batch_size, shuffle=True),
+                        samples_per_epoch=len(train_set), epochs=num_epoch, verbose=verbose,
+                        callbacks=[model_checkpoint, tensorboard],
+                        validation_data=val_gen.flow(val_set, val_set_masks, batch_size=batch_size, shuffle=True),
+                        validation_steps=int(len(val_set) / 32))
 
-    model.fit(train_set, train_set_masks, batch_size=batch_size,
-              epochs=num_epoch, verbose=verbose, 
-              shuffle=True,validation_split=0.2,callbacks=[model_checkpoint])
+    #model.fit(train_set, train_set_masks, batch_size=batch_size,
+    #          epochs=num_epoch, verbose=verbose, 
+    #          shuffle=True,validation_split=0.2,callbacks=[model_checkpoint,tensorboard])
 
     # evalutation
     evl_score = model.evaluate(val_set, val_set_masks, batch_size=batch_size, verbose=verbose)
     #print("evaluate score:", "loss,metrics")
-    print(evl_score)
-
+    print("evaluate score:" , evl_score)
 
     predicted_val_masks = model.predict(val_set, verbose=verbose)
     predicted_val_masks = np.around(predicted_val_masks)
@@ -130,7 +144,7 @@ def train_and_predict(model_name="unet",
     for predicted, val_mask in zip(predicted_val_masks, val_set_masks):
         dice += dice_score(predicted,val_mask)
     
-    print(dice/shape[0])
+    print('hard dice: ', dice/shape[0])
 
     # create testings
     '''
@@ -162,10 +176,10 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--is_train', type=str, default='True')
+    parser.add_argument('--is_train', type=str, default='True')
     parser.add_argument('--num_epoch', type=int, default=20, help='')
     parser.add_argument('--batch_size', type=int, default=32, help='')
-    parser.add_argument('--model', type=str, default='unet', help='unet,fcn,unet_res')
+    parser.add_argument('--model', type=str, default='unet', help='unet,fcn,unet_res,unet_deeper')
     parser.add_argument('--verbose', type=int, default=1, help='0 for desiable, 1 for progress bar, 2 for log')
     parser.add_argument('--filters', type=int, default=32, help='')
 

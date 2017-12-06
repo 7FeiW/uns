@@ -2,6 +2,9 @@ import os
 import numpy as np
 from skimage.transform import resize
 from skimage.io import imsave, imread
+from skimage.util import view_as_blocks
+from skimage.exposure import histogram
+import imagehash
 
 sample_image_rows = 420
 sample_image_cols = 580
@@ -87,3 +90,45 @@ def resize_all_images(images, img_rows, img_cols):
 def unison_shuffled_copies(list_one, linst_two):
     p = np.random.permutation(len(list_one))
     return list_one[p], linst_two[p]
+
+
+def find_similar_images(image_filenames, hashfunc = imagehash.dhash):
+    images = {}
+    for img in sorted(image_filenames):
+        hash = hashfunc(imread(img))
+        images[hash] = images.get(hash, []) + [img]
+    
+    for k, img_list in six.iteritems(images):
+        if len(img_list) > 1:
+            print(" ".join(img_list))
+
+def compute_image_hist(img):
+    # Divide the image in blocks and compute per-block histogram
+    print(img.shape)
+    blocks = view_as_blocks(img, block_shape=(32, 32))
+    img_hists = [histogram(block) for block in blocks]
+    return np.concatenate(img_hists)
+
+def create_clean_data_sets(image_path):
+    file_names = os.listdir(image_path)
+    file_names = [file_name for file_name in file_names if 'mask' not in file_name]
+
+    sample_grps = {} 
+    for file_name in file_names:
+        sample_name =  file_name.split('.')[0]
+        pid = int(file_name.split('_')[0])
+        if pid not in sample_grps:
+            sample_grps[pid] = []
+        sample_grps[pid].append(file_name)   
+    
+    #print(sample_grps)
+    for grp in sample_grps:
+        for sample in sample_grps[grp]:
+            image = imread(os.path.join(image_path, sample), as_grey=True)
+            image = resize(image, (256, 256), preserve_range=True,  mode='constant')
+            print(compute_image_hist(image))
+
+    #print(sample_grps)
+
+
+# create_clean_data_sets('./data/train')
