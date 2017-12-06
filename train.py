@@ -3,7 +3,7 @@ import json
 
 from keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import backend as K
 
 from loss_functions import *
@@ -35,6 +35,9 @@ def train_and_predict(model_name="unet",
 
     if not os.path.exists('models/'):
         os.mkdir('models')
+
+    if not os.path.exists('models/' + model_name):
+        os.mkdir('models/' + model_name)
 
     folder_name = 'models/' + model_name + '/e' + str(num_epoch) + '_b' + str(batch_size) + '_f' + str(filters)
     if not os.path.exists(folder_name):
@@ -119,6 +122,9 @@ def train_and_predict(model_name="unet",
     # set model checkpoint
     model_checkpoint = ModelCheckpoint(folder_name + '/models.h5', monitor='val_loss', save_best_only=True)
 
+    # early stop
+    EarlyStopping(monitor='val_loss', min_delta=0, patience=1, verbose=0, mode='auto')
+
     # fitting model
     model.fit_generator(data_gen.flow(train_set, train_set_masks, batch_size=batch_size, shuffle=True),
                         samples_per_epoch=len(train_set), epochs=num_epoch, verbose=verbose,
@@ -180,7 +186,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_epoch', type=int, default=20, help='')
     parser.add_argument('--batch_size', type=int, default=32, help='')
     parser.add_argument('--model', type=str, default='unet', help='unet,fcn,unet_res,unet_deeper')
-    parser.add_argument('--verbose', type=int, default=1, help='0 for desiable, 1 for progress bar, 2 for log')
+    parser.add_argument('--verbose', type=int, default=2, help='0 for desiable, 1 for progress bar, 2 for log')
     parser.add_argument('--filters', type=int, default=32, help='')
 
     args = parser.parse_args()
