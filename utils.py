@@ -4,7 +4,7 @@ from skimage.transform import resize
 from skimage.io import imsave, imread
 from skimage.util import view_as_blocks
 from skimage.exposure import histogram
-import imagehash
+
 
 sample_image_rows = 420
 sample_image_cols = 580
@@ -91,7 +91,7 @@ def unison_shuffled_copies(list_one, linst_two):
     p = np.random.permutation(len(list_one))
     return list_one[p], linst_two[p]
 
-
+'''
 def find_similar_images(image_filenames, hashfunc = imagehash.dhash):
     images = {}
     for img in sorted(image_filenames):
@@ -129,6 +129,6 @@ def create_clean_data_sets(image_path):
             print(compute_image_hist(image))
 
     #print(sample_grps)
-
+'''
 
 # create_clean_data_sets('./data/train')
