@@ -150,17 +150,17 @@ def train_and_predict(model_name="unet",
     #          shuffle=True,validation_split=0.2,callbacks=[model_checkpoint,tensorboard])
 
     # evalutation
-    evl_score = model.evaluate(val_set, val_set_masks, batch_size=batch_size, verbose=verbose)
+    evl_score = model.evaluate(test_set, test_set_masks, batch_size=batch_size, verbose=verbose)
     #print("evaluate score:", "loss,metrics")
     print("evaluate score:" , evl_score)
 
-    predicted_val_masks = model.predict(val_set, verbose=verbose)
-    predicted_val_masks = np.around(predicted_val_masks)
-    shape = predicted_val_masks.shape
-    predicted_val_masks_reshaped = np.reshape(predicted_val_masks,(shape[0], shape[1] * shape[2]))
+    predicted_test_masks = model.predict(test_set, verbose=verbose)
+    predicted_test_masks = np.around(predicted_test_masks)
+    shape = predicted_test_masks.shape
+    predicted_test_masks_reshaped = np.reshape(predicted_test_masks,(shape[0], shape[1] * shape[2]))
 
     dice = 0.
-    for predicted, val_mask in zip(predicted_val_masks, val_set_masks):
+    for predicted, val_mask in zip(predicted_test_masks, test_set_masks):
         dice += dice_score(predicted,val_mask)
     
     print('hard dice: ', dice/shape[0])

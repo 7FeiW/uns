@@ -6,10 +6,10 @@ from keras.models import Model
 def conv_block(inputs, filters, kernel_size):
     conv = Conv2D(filters, kernel_size, activation='relu', kernel_constraint=maxnorm(3),
                   kernel_initializer="he_uniform", padding='same')(inputs)
-    conv = Dropout(0.1)(conv)
+    #conv = Dropout(0.1)(conv)
     conv = Conv2D(filters, kernel_size, activation='relu', kernel_constraint=maxnorm(3),
                   kernel_initializer="he_uniform", padding='same')(conv)
-    conv = Dropout(0.1)(conv)
+    #conv = Dropout(0.1)(conv)
     return conv
 
 
@@ -131,75 +131,37 @@ def unet_invert(img_rows=64, img_cols=80, base_filter_num=32):
     simple unet
     '''
     inputs = Input((img_rows, img_cols, 1))
-    conv1 = conv_block(inputs, 256, (3, 3))
+    conv1 = conv_block(inputs, 512, (3, 3))
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
-    conv2 = conv_block(pool1, 128, (3, 3))
+    conv2 = conv_block(pool1, 256, (3, 3))
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
-    conv3 = conv_block(pool2, 64, (3, 3))
+    conv3 = conv_block(pool2, 128, (3, 3))
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
-    conv4 = conv_block(pool3, 32, (3, 3))
+    conv4 = conv_block(pool3, 64, (3, 3))
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
-    conv5 = conv_block(pool4, 16, (3, 3))
+    conv5 = conv_block(pool4, 32, (3, 3))
 
-    up6 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
-    conv6 = conv_block(up6, 32, (3, 3))
+    up6 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
+    conv6 = conv_block(up6, 64, (3, 3))
 
-    up7 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
-    conv7 = conv_block(up7, 64, (3, 3))
+    up7 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
+    conv7 = conv_block(up7, 128, (3, 3))
 
-    up8 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
-    conv8 = conv_block(up8, 128, (3, 3))
+    up8 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
+    conv8 = conv_block(up8, 256, (3, 3))
 
-    up9 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)
-    conv9 = conv_block(up9, 256, (3, 3))
+    up9 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)
+    conv9 = conv_block(up9, 512, (3, 3))
 
     conv10 = Conv2D(1, (1, 1), activation='sigmoid')(conv9)
 
     model = Model(inputs=[inputs], outputs=[conv10])
 
     return model
-
-def unet_invert_small(img_rows=64, img_cols=80, base_filter_num=32):
-    '''
-    simple unet
-    '''
-    inputs = Input((img_rows, img_cols, 1))
-    conv1 = conv_block(inputs, 128, (3, 3))
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-
-    conv2 = conv_block(pool1, 64, (3, 3))
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-
-    conv3 = conv_block(pool2, 32, (3, 3))
-    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-
-    conv4 = conv_block(pool3, 16, (3, 3))
-    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-
-    conv5 = conv_block(pool4, 8, (3, 3))
-    
-    up6 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
-    conv6 = conv_block(up6, 16, (3, 3))
-
-    up7 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
-    conv7 = conv_block(up7, 32, (3, 3))
-
-    up8 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
-    conv8 = conv_block(up8, 64, (3, 3))
-
-    up9 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)
-    conv9 = conv_block(up9, 128, (3, 3))
-
-    conv10 = Conv2D(1, (1, 1), activation='sigmoid')(conv9)
-
-    model = Model(inputs=[inputs], outputs=[conv10])
-
-    return model
-
 
 def unet_res(img_rows=64, img_cols=80, base_filter_num=32):
     '''
