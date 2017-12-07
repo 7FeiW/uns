@@ -30,7 +30,7 @@ def dice_score(im1, im2):
         return 2. * intersection.sum() / (im1.sum() + im2.sum())
 
 def train_and_predict(model_name="unet",
-                      num_epoch=10, batch_size=32, verbose=0, filters=32):
+                      num_epoch=10, batch_size=32, verbose=0, filters=32, load_model = 0):
     # folder name to save current run
 
     if not os.path.exists('models/'):
@@ -138,6 +138,10 @@ def train_and_predict(model_name="unet",
     # early stop
     EarlyStopping(monitor='val_loss', min_delta=0, patience=1, verbose=0, mode='auto')
 
+    if load_model == 1 and os.path.exists(folder_name + '/models.h5'):
+        print("Loaded model from disk")
+        model.load_weights(folder_name + '/models.h5')
+
     # fitting model
     model.fit_generator(data_gen.flow(train_set, train_set_masks, batch_size=batch_size, shuffle=True),
                         samples_per_epoch=len(train_set), epochs=num_epoch, verbose=verbose,
@@ -201,10 +205,12 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='unet', help='unet,fcn,unet_res,unet_deeper')
     parser.add_argument('--verbose', type=int, default=2, help='0 for desiable, 1 for progress bar, 2 for log')
     parser.add_argument('--filters', type=int, default=32, help='')
+    parser.add_argument('--load_model', type=int, default=0, help='')
 
     args = parser.parse_args()
     train_and_predict(model_name=args.model,
                       num_epoch=args.num_epoch,
                       batch_size=args.batch_size,
                       verbose=args.verbose,
-                      filters=args.filters)
+                      filters=args.filters,
+                      load_model= args.load_model)
