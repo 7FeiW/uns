@@ -12,6 +12,14 @@ sample_image_cols = 580
 img_rows = 64
 img_cols = 80
 
+def get_data_set(type):
+    print('Loading ' + type + ' Data')
+    npy_data_path = 'data/npy'
+    train_set_file = os.path.join(npy_data_path, type + '_set.npy')
+    train_set_masks = os.path.join(npy_data_path, type + '_set_masks.npy')
+    if os.path.exists(train_set_file) and os.path.exists(train_set_masks):
+        return np.load(train_set_file), np.load(train_set_masks)
+
 def get_training_npy_data():
     print('Loading Traning Data')
     npy_data_path = 'data/npy'
@@ -131,4 +139,39 @@ def create_clean_data_sets(image_path):
     #print(sample_grps)
 '''
 
-# create_clean_data_sets('./data/train')
+def create_data_sets():
+    # split data into training set and validation set
+    imgs_train, imgs_mask_train = get_training_npy_data()
+
+    imgs_train, imgs_mask_train = unison_shuffled_copies(imgs_train, imgs_mask_train)
+
+    train_set_len = len(imgs_train)
+    val_cut_off = int(train_set_len * 0.1)
+    test_cut_off = int(train_set_len * 0.2)
+
+    val_set = imgs_train[:val_cut_off]
+    val_set_masks = imgs_mask_train[:val_cut_off]
+
+    # set for evlautation 
+    test_set = imgs_train[val_cut_off: test_cut_off]
+    test_set_masks = imgs_train[val_cut_off: test_cut_off]
+
+    # set for training
+    train_set = imgs_train[test_cut_off:]
+    train_set_masks = imgs_mask_train[test_cut_off:]
+
+    npy_data_path = './data/npy/'
+
+
+    np.save(npy_data_path + 'train_set.npy', train_set)
+    np.save(npy_data_path + 'train_set_masks.npy', train_set_masks)
+
+
+    np.save(npy_data_path + 'dev_set.npy', val_set)
+    np.save(npy_data_path + 'dev_set_masks.npy', val_set_masks)
+
+    np.save(npy_data_path + 'test_set.npy', val_set)
+    np.save(npy_data_path + 'test_set_masks.npy', val_set_masks)
+
+if __name__ == '__main__':
+    create_data_sets()

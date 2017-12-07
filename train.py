@@ -44,17 +44,28 @@ def train_and_predict(model_name="unet",
         os.mkdir(folder_name)
 
     # load data
-    imgs_train, imgs_mask_train = get_training_npy_data()
+    train_set, train_set_masks = get_data_set('train')
+    val_set, val_set_masks = get_data_set('dev')
+    test_set, test_set_masks = get_data_set('test')
 
     # resize data
-    imgs_train = resize_all_images(imgs_train, img_rows, img_cols)
-    imgs_mask_train = resize_all_images(imgs_mask_train, img_rows, img_cols)
+    train_set = resize_all_images(train_set, img_rows, img_cols)
+    train_set_masks = resize_all_images(train_set_masks, img_rows, img_cols)
 
-    imgs_train = imgs_train.astype('float32')
+    val_set = resize_all_images(val_set, img_rows, img_cols)
+    val_set_masks = resize_all_images(val_set_masks, img_rows, img_cols)
+
+    test_set = resize_all_images(test_set, img_rows, img_cols)
+    test_set_masks = resize_all_images(test_set_masks, img_rows, img_cols)
+
 
     # pre proccessing
-    mean = np.mean(imgs_train)  # mean for data centering
-    std = np.std(imgs_train)  # std for data normalization
+    train_set = train_set.astype('float32')
+    val_set = val_set.astype('float32')
+    test_set = test_set.astype('float32')
+
+    mean = np.mean(train_set)  # mean for data centering
+    std = np.std(train_set)  # std for data normalization
 
     # save mean and std
     data = { 'mean': float(mean), 'std' : float(std)}
@@ -62,30 +73,28 @@ def train_and_predict(model_name="unet",
     with open(folder_name + '/data.json', 'w+') as outfile:
         json.dump(data, outfile)
 
-    imgs_train -= mean
-    imgs_train /= std
+    # normalizaztion
+    train_set -= mean
+    train_set /= std
 
-    imgs_mask_train = imgs_mask_train.astype('float32')
-    imgs_mask_train /= 255.0  # scale masks to [0, 1]
-    imgs_mask_train = np.round(imgs_mask_train)
+    val_set -= mean
+    val_set /= std
 
-    imgs_train, imgs_mask_train = unison_shuffled_copies(imgs_train, imgs_mask_train)
+    test_set -= mean
+    test_set /= std
 
-    # split data into training set and validation set
-    train_set_len = len(imgs_train)
-    val_cut_off = int(train_set_len * 0.1)
-    test_cut_off = int(train_set_len * 0.3)
+    # pre process masks
+    train_set_masks = train_set_masks.astype('float32')
+    train_set_masks /= 255.0  # scale masks to [0, 1]
+    train_set_masks = np.round(train_set_masks)
 
-    val_set = imgs_train[:val_cut_off]
-    val_set_masks = imgs_mask_train[:val_cut_off]
+    val_set_masks = val_set_masks.astype('float32')
+    val_set_masks /= 255.0  # scale masks to [0, 1]
+    val_set_masks = np.round(val_set_masks)
 
-    # set for evlautation 
-    test_set = imgs_train[val_cut_off: test_cut_off]
-    test_set_masks = imgs_train[val_cut_off: test_cut_off]
-
-    # set fro training
-    train_set = imgs_train[test_cut_off:]
-    train_set_masks = imgs_mask_train[test_cut_off:]
+    test_set_masks = test_set_masks.astype('float32')
+    test_set_masks /= 255.0  # scale masks to [0, 1]
+    test_set_masks = np.round(test_set_masks)
 
     # get model and compile
     if model_name == 'unet':
@@ -114,14 +123,14 @@ def train_and_predict(model_name="unet",
 
     # create data generator
     data_gen = ImageDataGenerator(
-        rotation_range=20,
+        rotation_range=30,
         vertical_flip=True,
         horizontal_flip=True)
 
     val_gen = ImageDataGenerator()
 
     #model.compile(optimizer=Adadelta(lr=0.1, rho=0.95, epsilon=1e-08), loss=dice_loss2, metrics=[dice_coef2,hard_dice_coef2])
-    model.compile(optimizer=Adam(lr=1e-5), loss=dice_loss, metrics=[hard_dice_coef])
+    model.compile(optimizer=Adam(lr=1e-5), loss=dice_loss, metrics=[hard_dice_coef, mean_iou])
 
     # set model checkpoint
     model_checkpoint = ModelCheckpoint(folder_name + '/models.h5', monitor='val_loss', save_best_only=True)
