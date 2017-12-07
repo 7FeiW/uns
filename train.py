@@ -100,7 +100,7 @@ def train_and_predict(model_name="unet",
         model = fcn(img_rows=img_rows, img_cols=img_cols, base_filter_num=filters)
     elif model_name == 'unet_deeper':
         model = unet_deeper(img_rows=img_rows, img_cols=img_cols, base_filter_num=filters)
-    elif: model_name == 'unet_invert':
+    elif model_name == 'unet_invert':
         model = unet_invert(img_rows=img_rows, img_cols=img_cols, base_filter_num=filters)
     else:
         print('ooops')
