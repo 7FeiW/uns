@@ -3,13 +3,15 @@ from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, Conv2DTranspo
 from keras.models import Model
 
 
-def conv_block(inputs, filters, kernel_size):
+def conv_block(inputs, filters, kernel_size, drop_rate = 0):
     conv = Conv2D(filters, kernel_size, activation='relu', kernel_constraint=maxnorm(3),
                   kernel_initializer="he_uniform", padding='same')(inputs)
-    conv = Dropout(0.1)(conv)
+    if drop_rate > 0:
+        conv = Dropout(drop_rate)(conv)
     conv = Conv2D(filters, kernel_size, activation='relu', kernel_constraint=maxnorm(3),
                   kernel_initializer="he_uniform", padding='same')(conv)
-    conv = Dropout(0.1)(conv)
+    if drop_rate > 0:
+        conv = Dropout(drop_rate)(conv)
     return conv
 
 
@@ -34,11 +36,11 @@ def conv_bn_res_block(inputs, filters, kernel_size):
     return added
 
 
-def conv_bn_res_block_drop(inputs, filters, kernel_size):
+def wide_res_block(inputs, filters, kernel_size, drop_rate = 0.5):
     conv1 = Conv2D(filters, kernel_size, activation='relu', kernel_constraint=maxnorm(3),
                    kernel_initializer="he_uniform", padding='same')(inputs)
     bn1 = BatchNormalization()(conv1)
-    dp1 = Dropout(0.1)(bn1)
+    dp1 = Dropout(drop_rate)(bn1)
     conv2 = Conv2D(filters, kernel_size, activation='relu', kernel_constraint=maxnorm(3),
                    kernel_initializer="he_uniform", padding='same')(dp1)
     bn2 = BatchNormalization()(conv2)
@@ -130,32 +132,33 @@ def unet_invert(img_rows=64, img_cols=80, base_filter_num=32):
     '''
     simple unet
     '''
+    dp_rate = 0.5
     inputs = Input((img_rows, img_cols, 1))
-    conv1 = conv_block(inputs, 512, (3, 3))
+    conv1 = conv_block(inputs, 512, (3, 3), dp_rate)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
-    conv2 = conv_block(pool1, 256, (3, 3))
+    conv2 = conv_block(pool1, 256, (3, 3), dp_rate)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
-    conv3 = conv_block(pool2, 128, (3, 3))
+    conv3 = conv_block(pool2, 128, (3, 3), dp_rate)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
-    conv4 = conv_block(pool3, 64, (3, 3))
+    conv4 = conv_block(pool3, 64, (3, 3), dp_rate)
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
-    conv5 = conv_block(pool4, 32, (3, 3))
+    conv5 = conv_block(pool4, 32, (3, 3), dp_rate)
 
     up6 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
-    conv6 = conv_block(up6, 64, (3, 3))
+    conv6 = conv_block(up6, 64, (3, 3), dp_rate)
 
     up7 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
-    conv7 = conv_block(up7, 128, (3, 3))
+    conv7 = conv_block(up7, 128, (3, 3), dp_rate)
 
     up8 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
-    conv8 = conv_block(up8, 256, (3, 3))
+    conv8 = conv_block(up8, 256, (3, 3), dp_rate)
 
     up9 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)
-    conv9 = conv_block(up9, 512, (3, 3))
+    conv9 = conv_block(up9, 512, (3, 3), dp_rate)
 
     conv10 = Conv2D(1, (1, 1), activation='sigmoid')(conv9)
 
@@ -247,39 +250,39 @@ def unet_res_wide_dp(img_rows=64, img_cols=80, base_filter_num=32):
     unet with wide dropout layer
     '''
     inputs = Input((img_rows, img_cols, 1))
-    conv1 = conv_bn_res_block_drop(inputs, base_filter_num, (3, 3))
+    conv1 = wide_res_block(inputs, base_filter_num, (3, 3))
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
     base_filter_num *= 2
-    conv2 = conv_bn_res_block_drop(pool1, base_filter_num, (3, 3))
+    conv2 = wide_res_block(pool1, base_filter_num, (3, 3))
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
     base_filter_num *= 2
-    conv3 = conv_bn_res_block_drop(pool2, base_filter_num, (3, 3))
+    conv3 = wide_res_block(pool2, base_filter_num, (3, 3))
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
     base_filter_num *= 2
-    conv4 = conv_bn_res_block_drop(pool3, base_filter_num, (3, 3))
+    conv4 = wide_res_block(pool3, base_filter_num, (3, 3))
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
     base_filter_num *= 2
-    conv5 = conv_bn_res_block_drop(pool4, base_filter_num, (3, 3))
+    conv5 = wide_res_block(pool4, base_filter_num, (3, 3))
 
     base_filter_num //= 2
     up6 = concatenate([Conv2DTranspose(base_filter_num, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
-    conv6 = conv_bn_res_block_drop(up6, base_filter_num, (3, 3))
+    conv6 = wide_res_block(up6, base_filter_num, (3, 3))
 
     base_filter_num //= 2
     up7 = concatenate([Conv2DTranspose(base_filter_num, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
-    conv7 = conv_bn_res_block_drop(up7, base_filter_num, (3, 3))
+    conv7 = wide_res_block(up7, base_filter_num, (3, 3))
 
     base_filter_num //= 2
     up8 = concatenate([Conv2DTranspose(base_filter_num, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
-    conv8 = conv_bn_res_block_drop(up8, base_filter_num, (3, 3))
+    conv8 = wide_res_block(up8, base_filter_num, (3, 3))
 
     base_filter_num //= 2
     up9 = concatenate([Conv2DTranspose(base_filter_num, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)
-    conv9 = conv_bn_res_block_drop(up9, base_filter_num, (3, 3))
+    conv9 = wide_res_block(up9, base_filter_num, (3, 3))
 
     conv10 = Conv2D(1, (1, 1), activation='sigmoid')(conv9)
 

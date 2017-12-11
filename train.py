@@ -29,6 +29,20 @@ def dice_score(im1, im2):
     else:
         return 2. * intersection.sum() / (im1.sum() + im2.sum())
 
+def iou(im1, im2):
+    im1 = np.asarray(im1).astype(np.bool)
+    im2 = np.asarray(im2).astype(np.bool)
+
+    if im1.shape != im2.shape:
+        raise ValueError("Shape mismatch: im1 and im2 must have the same shape.")
+
+    # Compute Dice coefficient
+    intersection = np.logical_and(im1, im2)
+    if im1.sum() + im2.sum() == 0:
+        return 1.0
+    else:
+        return intersection.sum() / (im1.sum() + im2.sum())
+
 def train_and_predict(model_name="unet",
                       num_epoch=10, batch_size=32, verbose=0, filters=32, load_model = 0):
     # folder name to save current run
@@ -142,8 +156,9 @@ def train_and_predict(model_name="unet",
         print("Loaded model from disk")
         model.load_weights(folder_name + '/models.h5')
 
+    if num_epoch > 0:
     # fitting model
-    model.fit_generator(data_gen.flow(train_set, train_set_masks, batch_size=batch_size, shuffle=True),
+        model.fit_generator(data_gen.flow(train_set, train_set_masks, batch_size=batch_size, shuffle=True),
                         samples_per_epoch=len(train_set), epochs=num_epoch, verbose=verbose,
                         callbacks=[model_checkpoint, tensorboard],
                         validation_data=val_gen.flow(val_set, val_set_masks, batch_size=batch_size, shuffle=True),
@@ -164,11 +179,14 @@ def train_and_predict(model_name="unet",
     predicted_test_masks_reshaped = np.reshape(predicted_test_masks,(shape[0], shape[1] * shape[2]))
 
     dice = 0.
+    iou = 0.
     for predicted, val_mask in zip(predicted_test_masks, test_set_masks):
         dice += dice_score(predicted,val_mask)
-    
-    print('hard dice: ', dice/shape[0])
-
+        iou += iou(predicted,val_mask)
+    print('hard dice: ', dice/shape[0], 'mean of iou:', iou/shape[0])
+    print('model summary:')
+    print(model.count_params())
+    print(model0.summary())
     # create testings
     '''
     imgs_test, imgs_id_test = get_testing_npy_data()
