@@ -157,7 +157,7 @@ def train_and_predict(model_name="unet",
         model.load_weights(folder_name + '/models.h5')
 
     if num_epoch > 0:
-    # fitting model
+        # fitting model
         model.fit_generator(data_gen.flow(train_set, train_set_masks, batch_size=batch_size, shuffle=True),
                         samples_per_epoch=len(train_set), epochs=num_epoch, verbose=verbose,
                         callbacks=[model_checkpoint, tensorboard],
