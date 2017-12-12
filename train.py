@@ -29,7 +29,7 @@ def dice_score(im1, im2):
     else:
         return 2. * intersection.sum() / (im1.sum() + im2.sum())
 
-def iou(im1, im2):
+def iou_score(im1, im2):
     im1 = np.asarray(im1).astype(np.bool)
     im2 = np.asarray(im2).astype(np.bool)
 
@@ -182,7 +182,7 @@ def train_and_predict(model_name="unet",
     iou = 0.
     for predicted, val_mask in zip(predicted_test_masks, test_set_masks):
         dice += dice_score(predicted,val_mask)
-        iou += iou(predicted,val_mask)
+        iou += iou_score(predicted,val_mask)
     print('hard dice: ', dice/shape[0], 'mean of iou:', iou/shape[0])
     print('model summary:')
     print(model.count_params())
