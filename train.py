@@ -186,7 +186,7 @@ def train_and_predict(model_name="unet",
     print('hard dice: ', dice/shape[0], 'mean of iou:', iou/shape[0])
     print('model summary:')
     print(model.count_params())
-    print(model0.summary())
+    print(model.summary())
     # create testings
     '''
     imgs_test, imgs_id_test = get_testing_npy_data()
